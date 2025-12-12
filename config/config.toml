@@ -1,0 +1,8 @@
+[auth]
+  user_id = "UserID"
+  password = "Password"
+  service = "Service"
+
+[api]
+  base_url = "http://210.27.177.172"
+  login_url = "http://210.27.177.172/eportal/InterFace.do?method=login"
