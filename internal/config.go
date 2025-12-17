@@ -22,6 +22,7 @@ type AuthConfig struct {
 type APIConfig struct {
 	BaseURL  string `toml:"base_url"`
 	LoginURL string `toml:"login_url"`
+	TestURL  string `toml:"test_url"`
 }
 
 func defaultConfig() Config {
@@ -34,6 +35,7 @@ func defaultConfig() Config {
 		API: APIConfig{
 			BaseURL:  "http://210.27.177.172",
 			LoginURL: "http://210.27.177.172/eportal/InterFace.do?method=login",
+			TestURL:  "www.baidu.com",
 		},
 	}
 }

@@ -2,6 +2,8 @@ package main
 
 import (
 	config "AutoLogin/internal"
+	"encoding/json"
+	"errors"
 	"flag"
 	"io"
 	"log"
@@ -14,6 +16,11 @@ import (
 
 var (
 	cfgPath string
+)
+
+var (
+	ErrRedirectURLNotFound = errors.New("redirect URL not found in response body")
+	ErrHTTPStatusNotOK     = errors.New("http status not OK")
 )
 
 func init() {
@@ -33,9 +40,28 @@ func main() {
 	}
 
 	queryString, err := fetchQueryString(client, &cfg)
+	if err == ErrRedirectURLNotFound {
+		err = CheckNetworkConnectivityWithURL(&cfg)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	err = login(client, &cfg, queryString)
 
+}
+
+func CheckNetworkConnectivityWithURL(cfg *config.Config) error {
+	resp, err := http.Get(cfg.API.TestURL)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.Println(resp.StatusCode)
+		return ErrHTTPStatusNotOK
+	}
+	log.Println(resp.StatusCode)
+	return nil
 }
 
 func fetchQueryString(client *http.Client, cfg *config.Config) (string, error) {
@@ -55,7 +81,7 @@ func fetchQueryString(client *http.Client, cfg *config.Config) (string, error) {
 	matches := re.FindStringSubmatch(string(content))
 	if len(matches) < 2 {
 		log.Printf("redirect URL not found in response body")
-		return "", err
+		return "", ErrRedirectURLNotFound
 	}
 
 	redirectURL := matches[1]
@@ -71,6 +97,16 @@ func fetchQueryString(client *http.Client, cfg *config.Config) (string, error) {
 	log.Printf("raw query string: %s", queryString)
 	return queryString, nil
 
+}
+
+type LoginResponse struct {
+	UserIndex         string      `json:"userIndex"`
+	Result            string      `json:"result"`
+	Message           string      `json:"message"`
+	Forwordurl        interface{} `json:"forwordurl"`
+	KeepaliveInterval int         `json:"keepaliveInterval"`
+	CasFailErrString  interface{} `json:"casFailErrString"`
+	ValidCodeURL      string      `json:"validCodeUrl"`
 }
 
 func login(client *http.Client, cfg *config.Config, queryString string) error {
@@ -96,6 +132,8 @@ func login(client *http.Client, cfg *config.Config, queryString string) error {
 		return err
 	}
 	log.Printf("login response body: %s", content)
-
+	var loginResp LoginResponse
+	json.Unmarshal(content, &loginResp)
+	log.Printf("login response: %+v", loginResp.Result)
 	return nil
 }
