@@ -6,4 +6,4 @@
 [api]
   base_url = "http://210.27.177.172"
   login_url = "http://210.27.177.172/eportal/InterFace.do?method=login"
-  test_url = "www.baidu.com"
+  test_url = "http://www.baidu.com"
