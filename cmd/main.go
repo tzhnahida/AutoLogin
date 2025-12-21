@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -30,18 +30,18 @@ func main() {
 	if !test {
 		path, err := os.Executable()
 		if err != nil {
-			log.Fatalln(err)
+			slog.Error(err.Error())
 		}
 		dir, _ := filepath.Split(path)
 		err = os.Chdir(dir)
 		if err != nil {
-			log.Fatalln(err)
+			slog.Error(err.Error())
 		}
 	}
 
 	cfg, err := autologin.LoadConfig(autologin.CfgPath)
 	if err != nil {
-		log.Fatalf("config read failed: %v", err)
+		slog.Error(err.Error())
 	}
 	svcConfig := &service.Config{
 		Name:        cfg.Service.Name,
@@ -51,27 +51,32 @@ func main() {
 	prg := autologin.NewProgram(&cfg)
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
 	}
 	switch {
 	case install:
 		err = s.Install()
+		slog.Info("Service registration in progress.")
 		if err != nil {
-			log.Println(err)
+			slog.Error(err.Error())
 		}
 	case uninstall:
 		err = s.Uninstall()
+		slog.Info("Service uninstall in progress.")
 		if err != nil {
-			log.Println(err)
+			slog.Error(err.Error())
 		}
 	default:
 		autologin.Logger, err = s.Logger(nil)
 		if err != nil {
-			log.Fatal(err)
+			slog.Error(err.Error())
 		}
 		err = s.Run()
 		if err != nil {
-			autologin.Logger.Error(err)
+			err := autologin.Logger.Error(err)
+			if err != nil {
+				slog.Error(err.Error())
+			}
 		}
 
 	}

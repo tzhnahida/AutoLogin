@@ -4,6 +4,8 @@
     <inspection_tool class="GoDfaErrorMayBeNotNil" enabled="true" level="WARNING" enabled_by_default="true">
       <functions>
         <function importPath="net/http" name="Get" />
+        <function importPath="github.com/kardianos/service" name="New" />
+        <function importPath="autologin" name="LoadConfig" />
       </functions>
     </inspection_tool>
     <inspection_tool class="GoResourceLeak" enabled="true" level="WARNING" enabled_by_default="true">

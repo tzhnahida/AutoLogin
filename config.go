@@ -1,6 +1,8 @@
 package autologin
 
 import (
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -67,7 +69,8 @@ func LoadConfig(path string) (Config, error) {
 	var cfg Config
 	_, err := toml.DecodeFile(path, &cfg)
 	if err != nil {
-		return cfg, err
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 	return cfg, nil
 }

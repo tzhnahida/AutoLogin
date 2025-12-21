@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	url2 "net/url"
@@ -31,48 +31,49 @@ type LoginResponse struct {
 
 func CheckNetworkConnectivityWithURL(cfg *Config) error {
 	resp, err := http.Get(cfg.API.TestURL)
+	slog.Info("Checking network connectivity...")
 	if err != nil {
+		slog.Error(err.Error())
 		return ErrHTTPTestURLGet
 	}
 	if resp.StatusCode != http.StatusOK {
-		log.Println(resp.StatusCode)
+		slog.Warn("Network connectivity check failed. Host is unreachable.")
 		return ErrHTTPStatusNotOK
 	}
-	log.Println(resp.StatusCode)
+	slog.Info("Network connectivity check passed. Network is reachable.")
 	return nil
 }
 
 func FetchQueryString(client *http.Client, cfg *Config) (string, error) {
 	resp, err := client.Get(cfg.API.BaseURL)
 	if err != nil {
-		log.Printf("request to %s failed: %v", cfg.API.BaseURL, err)
+		slog.Error(err.Error())
 		return "", err
 	}
 
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("failed to read response body: %v", err)
+		slog.Error(err.Error())
 		return "", err
 	}
 
 	re := regexp.MustCompile(`location\.href='([^']+)'`)
 	matches := re.FindStringSubmatch(string(content))
 	if len(matches) < 2 {
-		log.Printf("redirect URL not found in response body")
+		slog.Warn("No redirect URL was acquired.")
 		return "", ErrRedirectURLNotFound
 	}
 
 	redirectURL := matches[1]
-	log.Printf("redirect URL extracted: %s", redirectURL)
-
+	slog.Info("Successfully obtained the URL.")
 	resp, err = client.Get(redirectURL)
 	if err != nil {
-		log.Printf("request to redirect URL failed: %v", err)
+		slog.Error(err.Error())
 		return "", err
 	}
 
 	queryString := resp.Request.URL.RawQuery
-	log.Printf("raw query string: %s", queryString)
+	slog.Info("Successfully obtained the query string.")
 	return queryString, nil
 
 }
@@ -88,36 +89,35 @@ func AuthenticateWithCredentials(client *http.Client, cfg *Config, queryString s
 	data.Set("validcode", "")
 	data.Set("passwordEncrypt", "false")
 
+	slog.Info("Authenticating with credentials.")
 	resp, err := client.Post(cfg.API.LoginURL, "application/x-www-form-urlencoded; charset=UTF-8", strings.NewReader(data.Encode()))
 	if err != nil {
-		log.Printf("login request failed: %v", err)
+		slog.Error(err.Error())
 		return err
 	}
-
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("failed to read login response body: %v", err)
+		slog.Error(err.Error())
 		return err
 	}
-	log.Printf("login response body: %s", content)
 	var loginResp LoginResponse
 	err = json.Unmarshal(content, &loginResp)
 	if err != nil {
 		return err
 	}
-	log.Printf("login response: %+v", loginResp.Result)
 	if loginResp.Result != "success" {
+		slog.Warn("Authentication failed. Retrying...")
 		ticker := time.NewTicker(cfg.Time.RetryInterval)
 		select {
 		case <-ticker.C:
 			ticker.Stop()
 			queryString, err := FetchQueryString(client, cfg)
 			if err != nil {
-				log.Fatalf("fetch query string failed: %v", err)
+				slog.Error(err.Error())
 			}
 			err = AuthenticateWithCredentials(client, cfg, queryString)
 			if err != nil {
-				log.Fatalf("fetch query string failed: %v", err)
+				slog.Error(err.Error())
 			}
 		}
 	}
@@ -133,12 +133,12 @@ func login(cfg *Config) error {
 	if err == ErrHTTPStatusNotOK || err == ErrHTTPTestURLGet {
 		queryString, err := FetchQueryString(client, cfg)
 		if err != nil {
-			log.Fatalf("fetch query string failed: %v", err)
+			slog.Error(err.Error())
 		}
 		err = AuthenticateWithCredentials(client, cfg, queryString)
 		if err != nil {
-			log.Fatalf("authenticate failed: %v", err)
+			slog.Error(err.Error())
 		}
 	}
-	return err
+	return nil
 }

@@ -1,7 +1,7 @@
 package autologin
 
 import (
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/kardianos/service"
@@ -33,7 +33,7 @@ func (p *Program) Stop(s service.Service) error {
 
 func (p *Program) run() {
 	if err := login(p.cfg); err != nil {
-		log.Printf("Login error: %v", err)
+		slog.Error(err.Error())
 	}
 
 	ticker := time.NewTicker(p.cfg.Time.PollInterval)
@@ -42,10 +42,10 @@ func (p *Program) run() {
 		select {
 		case <-ticker.C:
 			if err := login(p.cfg); err != nil {
-				log.Printf("Login error: %v", err)
+				slog.Error(err.Error())
 			}
 		case <-p.stop:
-			log.Println("service stopping")
+			slog.Info("Service stopped")
 			return
 		}
 	}
