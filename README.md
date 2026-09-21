@@ -85,7 +85,10 @@ cp config.script.example autologin.conf
 配置示例：
 
 ```text
+# 学号或账号
 USER_ID="你的学号"
+
+# 登录密码
 PASSWORD="你的密码"
 ```
 
