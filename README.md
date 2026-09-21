@@ -87,12 +87,6 @@ cp config.script.example autologin.conf
 ```text
 USER_ID="你的学号"
 PASSWORD="你的密码"
-SERVICE="校园联通/电信/移动"
-BASE_URL="http://210.27.177.172"
-LOGIN_URL="http://210.27.177.172/eportal/InterFace.do?method=login"
-TEST_URL="https://www.baidu.com"
-POLL_INTERVAL=3600
-RETRY_INTERVAL=60
 ```
 
 脚本默认内置校园网地址：
