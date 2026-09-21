@@ -76,7 +76,7 @@ display_name = "AutoLogin Service"
 
 ### 脚本版配置
 
-Linux `autologin.sh` 和 Windows `autologin.cmd` 使用简单 `KEY=VALUE` 格式，默认读取当前文件夹下的 `autologin.conf`。复制示例：
+Linux `autologin.sh` 和 Windows `autologin.cmd` 使用简单 `KEY=VALUE` 格式，默认读取当前文件夹下的 `autologin.conf`。运行前必须先把示例配置复制为真实配置：
 
 ```bash
 cp config.script.example autologin.conf
@@ -168,7 +168,13 @@ autologin.cmd -once
 
 ##  Linux 脚本版开机自启
 
-脚本版推荐用 systemd 开机自启。运行安装脚本：
+脚本版推荐用 systemd 开机自启。先复制配置文件：
+
+```bash
+cp config.script.example autologin.conf
+```
+
+编辑 `autologin.conf` 后，运行安装脚本：
 
 ```bash
 sudo ./install-service.sh
@@ -197,7 +203,13 @@ journalctl -u autologin.service -f
 
 ##  Windows 脚本版开机自启
 
-Windows 脚本版可以复制到当前用户的启动目录。双击运行：
+Windows 脚本版可以复制到当前用户的启动目录。先复制配置文件：
+
+```bat
+copy config.script.example autologin.conf
+```
+
+编辑 `autologin.conf` 后，双击运行：
 
 ```bat
 install-startup.cmd
