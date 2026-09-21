@@ -1,6 +1,6 @@
 # 青海大学校园网自动登录工具（AutoLogin）
 
-一个使用 **Go** 编写的校园网自动认证工具，适用于 **青海大学校园网** 环境。  
+一个校园网自动认证工具，适用于 **青海大学校园网** 环境。  
 当网络断开或设备重连时，程序可自动完成认证登录，减少手动操作。
 
 ---
@@ -12,6 +12,7 @@
 - 模拟浏览器请求，完成认证登录流程
 - 支持后台常驻运行（服务模式）
 - 配置文件清晰，便于修改与维护
+- 提供 Go 二进制版与 Shell / Windows 批处理脚本版
 
 ---
 
@@ -34,8 +35,11 @@
 ├─ config.go         # 配置加载与解析
 ├─ login.go          # 登录逻辑实现
 ├─ autodaemon.go     # 服务/守护进程相关
-├─ build.sh          # Linux / macOS 构建脚本
-├─ build.bat         # Windows 构建脚本
+├─ autologin.sh      # Linux 脚本版
+├─ autologin.cmd     # Windows 批处理版
+├─ config.script.example # 脚本版配置示例
+├─ build.sh          # Go 版 Linux / macOS 构建脚本
+├─ build.bat         # Go 版 Windows 构建脚本
 └─ README.md
 ```
 
@@ -43,7 +47,9 @@
 
 ##  配置说明
 
-配置文件使用 **TOML** 格式：
+### Go 二进制版配置
+
+Go 版使用 **TOML** 格式：
 
 ```toml
 [auth]
@@ -66,11 +72,44 @@ description  = "Go-based CLI tool for campus network authentication."
 display_name = "AutoLogin Service"
 ```
 
- 请务必将学号和密码替换为你自己的信息，配置文件请妥善保管。
+请务必将学号和密码替换为你自己的信息，配置文件请妥善保管。
+
+### 脚本版配置
+
+Linux `autologin.sh` 和 Windows `autologin.cmd` 使用简单 `KEY=VALUE` 格式。复制示例：
+
+```bash
+cp config.script.example autologin.conf
+```
+
+配置示例：
+
+```text
+USER_ID="你的学号"
+PASSWORD="你的密码"
+SERVICE="校园联通/电信/移动"
+BASE_URL="http://210.27.177.172"
+LOGIN_URL="http://210.27.177.172/eportal/InterFace.do?method=login"
+TEST_URL="https://www.baidu.com"
+POLL_INTERVAL=3600
+RETRY_INTERVAL=60
+```
+
+脚本默认内置校园网地址：
+
+- `BASE_URL=http://210.27.177.172`
+- `LOGIN_URL=http://210.27.177.172/eportal/InterFace.do?method=login`
+- `TEST_URL=https://www.baidu.com`
+- `POLL_INTERVAL=3600`
+- `RETRY_INTERVAL=60`
+
+如果 `SERVICE` 留空或不填写，脚本会依次尝试：`校园联通`、`校园电信`、`校园移动`、`校园无线`。如果填写了 `SERVICE`，脚本只尝试该值。
+
+`POLL_INTERVAL` 和 `RETRY_INTERVAL` 单位为秒。配置文件包含账号密码，请妥善保管，不要提交到公开仓库。
 
 ---
 
-##  构建方式
+##  Go 版构建方式
 
 ### 直接构建
 
@@ -78,7 +117,7 @@ display_name = "AutoLogin Service"
 go build -o autologin ./cmd
 ```
 
-### 使用脚本
+### Go 版构建脚本
 
 - Windows：`build.bat`
 - Linux / macOS：`build.sh`
@@ -87,13 +126,34 @@ go build -o autologin ./cmd
 
 ##  使用方法
 
-### 普通运行
+### Linux 脚本版
+
+运行环境需要 `bash`、`curl`、`sed`、`grep`。
+
+```bash
+chmod +x autologin.sh
+./autologin.sh
+./autologin.sh -c /path/to/autologin.conf
+./autologin.sh -once
+```
+
+### Windows 批处理版
+
+Windows 使用系统自带或手动安装的 `curl.exe`。
+
+```bat
+autologin.cmd
+autologin.cmd -c C:\path\to\autologin.conf
+autologin.cmd -once
+```
+
+### Go 二进制版
 
 ```bash
 ./autologin
 ```
 
-### 指定配置文件
+### Go 版指定配置文件
 
 ```bash
 ./autologin -config config.toml
@@ -104,15 +164,15 @@ go build -o autologin ./cmd
 
 ---
 
-##  服务模式（后台运行）
+##  Go 版服务模式
 
-### 安装为系统服务
+### Go 版安装为系统服务
 
 ```bash
 ./autologin -install
 ```
 
-### 卸载服务
+### Go 版卸载服务
 
 ```bash
 ./autologin -uninstall
