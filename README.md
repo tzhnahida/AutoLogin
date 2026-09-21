@@ -76,7 +76,7 @@ display_name = "AutoLogin Service"
 
 ### 脚本版配置
 
-Linux `autologin.sh` 和 Windows `autologin.cmd` 使用简单 `KEY=VALUE` 格式。复制示例：
+Linux `autologin.sh` 和 Windows `autologin.cmd` 使用简单 `KEY=VALUE` 格式，默认读取当前文件夹下的 `autologin.conf`。复制示例：
 
 ```bash
 cp config.script.example autologin.conf
@@ -133,8 +133,8 @@ go build -o autologin ./cmd
 ```bash
 chmod +x autologin.sh
 ./autologin.sh
-./autologin.sh -c /path/to/autologin.conf
 ./autologin.sh -once
+./autologin.sh -c /path/to/autologin.conf
 ```
 
 ### Windows 批处理版
@@ -146,6 +146,8 @@ autologin.cmd
 autologin.cmd -c C:\path\to\autologin.conf
 autologin.cmd -once
 ```
+
+默认情况下脚本会读取当前文件夹下的 `autologin.conf`；如果配置放在其他位置，再使用 `-c/--config` 指定路径。
 
 ### Go 二进制版
 
