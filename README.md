@@ -195,6 +195,22 @@ systemctl status autologin.service
 journalctl -u autologin.service -f
 ```
 
+##  Windows 脚本版开机自启
+
+Windows 脚本版可以复制到当前用户的启动目录。双击运行：
+
+```bat
+install-startup.cmd
+```
+
+安装脚本会执行：
+
+- 查找当前 Windows 用户启动目录
+- 复制当前目录下的 `autologin.cmd`
+- 复制当前目录下的 `autologin.conf`
+
+运行前请把 `autologin.cmd`、`autologin.conf` 和 `install-startup.cmd` 放在同一目录。
+
 ### Go 版服务模式
 
 ### Go 版安装为系统服务
