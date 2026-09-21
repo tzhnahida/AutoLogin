@@ -166,7 +166,36 @@ autologin.cmd -once
 
 ---
 
-##  Go 版服务模式
+##  Linux 脚本版开机自启
+
+脚本版推荐用 systemd 开机自启。运行安装脚本：
+
+```bash
+sudo ./install-service.sh
+```
+
+安装脚本会执行：
+
+- 复制 `autologin.sh` 到 `/usr/local/bin/autologin.sh`
+- 复制当前 `autologin.conf` 到 `/etc/autologin.conf`
+- 写入 `/etc/systemd/system/autologin.service`
+- 执行 `systemctl daemon-reload`
+- 执行 `systemctl enable --now autologin.service`
+
+也可以指定配置文件：
+
+```bash
+sudo ./install-service.sh -c /path/to/autologin.conf
+```
+
+查看服务和日志：
+
+```bash
+systemctl status autologin.service
+journalctl -u autologin.service -f
+```
+
+### Go 版服务模式
 
 ### Go 版安装为系统服务
 
