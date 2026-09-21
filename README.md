@@ -96,6 +96,8 @@ PASSWORD="你的密码"
 
 脚本默认内置校园网地址：
 
+- `PING_ENABLE=true`
+- `PING_TARGET=223.5.5.5`
 - `BASE_URL=http://210.27.177.172`
 - `LOGIN_URL=http://210.27.177.172/eportal/InterFace.do?method=login`
 - `TEST_URL=https://www.baidu.com`
@@ -103,6 +105,8 @@ PASSWORD="你的密码"
 - `RETRY_INTERVAL=60`
 
 如果 `SERVICE` 留空或不填写，脚本会依次尝试：`校园联通`、`校园电信`、`校园移动`、`校园无线`。如果填写了 `SERVICE`，脚本只尝试该值。
+
+连通性检测默认要求 `ping PING_TARGET` 和访问 `TEST_URL` 都成功，才认为网络可用；否则脚本会尝试登录。这样可以避免校园网未认证时因为能访问部分站点而误判为已联网。
 
 `POLL_INTERVAL` 和 `RETRY_INTERVAL` 单位为秒。配置文件包含账号密码，请妥善保管，不要提交到公开仓库。
 

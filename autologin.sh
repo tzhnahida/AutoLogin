@@ -41,6 +41,8 @@ SERVICE=""
 BASE_URL="http://210.27.177.172"
 LOGIN_URL="http://210.27.177.172/eportal/InterFace.do?method=login"
 TEST_URL="https://www.baidu.com"
+PING_ENABLE=true
+PING_TARGET="223.5.5.5 114.114.114.114"
 POLL_INTERVAL=3600
 RETRY_INTERVAL=60
 
@@ -73,6 +75,8 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     BASE_URL) BASE_URL="$value" ;;
     LOGIN_URL) LOGIN_URL="$value" ;;
     TEST_URL) TEST_URL="$value" ;;
+    PING_ENABLE) PING_ENABLE="$value" ;;
+    PING_TARGET) PING_TARGET="$value" ;;
     POLL_INTERVAL) POLL_INTERVAL="$value" ;;
     RETRY_INTERVAL) RETRY_INTERVAL="$value" ;;
   esac
@@ -94,14 +98,30 @@ log() {
 }
 
 check_network() {
-  local status
   log "Checking network connectivity..."
+  check_ping || return 1
+
+  local status
   status="$(curl -ksS -L --max-time 15 -o /dev/null -w '%{http_code}' "$TEST_URL")"
   if [[ "$status" == "200" ]]; then
     log "Network reachable."
     return 0
   fi
   log "Network check failed. HTTP status: $status"
+  return 1
+}
+
+check_ping() {
+  [[ "$PING_ENABLE" != "false" ]] || return 0
+  command -v ping >/dev/null || { echo "ping is required when PING_ENABLE=true" >&2; return 1; }
+
+  local target
+  for target in ${PING_TARGET}; do
+    log "Pinging $target..."
+    ping -c 2 -W 2 "$target" >/dev/null 2>&1 && return 0
+  done
+
+  log "Ping check failed for: $PING_TARGET"
   return 1
 }
 

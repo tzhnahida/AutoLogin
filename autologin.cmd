@@ -47,6 +47,8 @@ set "SERVICE="
 set "BASE_URL=http://210.27.177.172"
 set "LOGIN_URL=http://210.27.177.172/eportal/InterFace.do?method=login"
 set "TEST_URL=https://www.baidu.com"
+set "PING_ENABLE=true"
+set "PING_TARGET=223.5.5.5"
 set "POLL_INTERVAL=3600"
 set "RETRY_INTERVAL=60"
 
@@ -81,12 +83,32 @@ goto run_loop
 
 :check_network
 echo Checking network connectivity...
+call :check_ping
+if errorlevel 1 exit /b 1
 curl -ksS -L --max-time 15 -o nul -w "%%{http_code}" !TEST_URL! | findstr /r "200" >nul
 if errorlevel 1 (
   echo Network check failed.
   exit /b 1
 )
 echo Network reachable.
+exit /b 0
+
+:check_ping
+if /i "!PING_ENABLE!"=="false" exit /b 0
+
+where ping >nul 2>nul
+if errorlevel 1 (
+  echo ping is required when PING_ENABLE=true 1>&2
+  exit /b 1
+)
+
+echo Pinging !PING_TARGET!...
+ping -n 3 !PING_TARGET! >nul
+if errorlevel 1 (
+  echo Ping check failed for: !PING_TARGET!
+  exit /b 1
+)
+
 exit /b 0
 
 :authenticate_any
@@ -184,7 +206,18 @@ if defined KEY if defined VALUE (
   set "VALUE=!VALUE:"=!"
   if not "!VALUE:~0,1!"=="-" (
     set "VALUE=!VALUE:~1,!"
-    if defined VALUE set "!KEY!=!VALUE!"
+    if defined VALUE (
+      if /i "!KEY!"=="USER_ID" set "USER_ID=!VALUE!"
+      if /i "!KEY!"=="PASSWORD" set "PASSWORD=!VALUE!"
+      if /i "!KEY!"=="SERVICE" set "SERVICE=!VALUE!"
+      if /i "!KEY!"=="BASE_URL" set "BASE_URL=!VALUE!"
+      if /i "!KEY!"=="LOGIN_URL" set "LOGIN_URL=!VALUE!"
+      if /i "!KEY!"=="TEST_URL" set "TEST_URL=!VALUE!"
+      if /i "!KEY!"=="PING_ENABLE" set "PING_ENABLE=!VALUE!"
+      if /i "!KEY!"=="PING_TARGET" set "PING_TARGET=!VALUE!"
+      if /i "!KEY!"=="POLL_INTERVAL" set "POLL_INTERVAL=!VALUE!"
+      if /i "!KEY!"=="RETRY_INTERVAL" set "RETRY_INTERVAL=!VALUE!"
+    )
   )
 )
 exit /b 0
