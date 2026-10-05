@@ -1,6 +1,6 @@
 # 青海大学校园网自动登录工具（AutoLogin）
 
-一个使用 **Go** 编写的校园网自动认证工具，适用于 **青海大学校园网** 环境。  
+一个校园网自动认证工具，适用于 **青海大学校园网** 环境。  
 当网络断开或设备重连时，程序可自动完成认证登录，减少手动操作。
 
 ---
@@ -12,6 +12,7 @@
 - 模拟浏览器请求，完成认证登录流程
 - 支持后台常驻运行（服务模式）
 - 配置文件清晰，便于修改与维护
+- 提供 Go 二进制版与 Shell / Windows 批处理脚本版
 
 ---
 
@@ -34,8 +35,11 @@
 ├─ config.go         # 配置加载与解析
 ├─ login.go          # 登录逻辑实现
 ├─ autodaemon.go     # 服务/守护进程相关
-├─ build.sh          # Linux / macOS 构建脚本
-├─ build.bat         # Windows 构建脚本
+├─ autologin.sh      # Linux 脚本版
+├─ autologin.cmd     # Windows 批处理版
+├─ config.script.example # 脚本版配置示例
+├─ build.sh          # Go 版 Linux / macOS 构建脚本
+├─ build.bat         # Go 版 Windows 构建脚本
 └─ README.md
 ```
 
@@ -43,7 +47,9 @@
 
 ##  配置说明
 
-配置文件使用 **TOML** 格式：
+### Go 二进制版配置
+
+Go 版使用 **TOML** 格式：
 
 ```toml
 [auth]
@@ -66,11 +72,55 @@ description  = "Go-based CLI tool for campus network authentication."
 display_name = "AutoLogin Service"
 ```
 
- 请务必将学号和密码替换为你自己的信息，配置文件请妥善保管。
+请务必将学号和密码替换为你自己的信息，配置文件请妥善保管。
+
+### 脚本版配置
+
+Linux `autologin.sh` 和 Windows `autologin.cmd` 使用简单 `KEY=VALUE` 格式，默认读取当前文件夹下的 `autologin.conf`。运行前必须先把示例配置复制为真实配置：
+
+```bash
+cp config.script.example autologin.conf
+```
+
+配置示例：
+
+```text
+# 学号或账号
+# 不要删除引号
+USER_ID="你的学号"
+
+# 登录密码
+# 不要删除引号
+PASSWORD="你的密码"
+```
+
+脚本默认内置校园网地址：
+
+- `PING_ENABLE=true`
+- `PING_TARGET=223.5.5.5`
+- `BASE_URL=http://210.27.177.172`
+- `LOGIN_URL=http://210.27.177.172/eportal/InterFace.do?method=login`
+- `TEST_URL=https://www.baidu.com`
+- `TRIGGER_URL=http://www.baidu.com`
+- `POLL_INTERVAL=3600`
+- `RETRY_INTERVAL=60`
+
+脚本的所有 HTTP 请求都强制直连（`curl --noproxy '*'`），不会走本机代理。如果配置的 `BASE_URL` 连不上或没有返回认证跳转页（例如换了网络环境、Portal 地址变了），脚本会访问 `TRIGGER_URL`（必须是一个 HTTP 地址，这样才会被 Portal 劫持跳转），从跳转目标自动探测当前网络真正的 Portal 地址并完成登录。
+
+如果 `SERVICE` 留空或不填写，脚本会依次尝试：`校园联通`、`校园电信`、`校园移动`、`校园无线`。如果填写了 `SERVICE`，脚本只尝试该值。
+
+脚本每个周期**先直接尝试认证，再检测连通性**——这样在 Portal 只在未认证窗口期内可达的网络上，登录尝试不会被连通性检查耽误；已在线时重复的认证请求会被 Portal 拒绝，无副作用。连通性检测要求 `ping PING_TARGET` 和访问 `TEST_URL` 都成功；认证后网络仍不通，则每 `RETRY_INTERVAL` 秒重试，通了则休眠 `POLL_INTERVAL`。
+
+`POLL_INTERVAL` 和 `RETRY_INTERVAL` 单位为秒。配置文件包含账号密码，请妥善保管，不要提交到公开仓库。
+
+脚本版的登录流程与 Go 二进制版保持一致（相同的编码方式、相同的连通性判定与重试节奏）。两点注意：
+
+- `autologin.conf` 请保存为 **UTF-8（无 BOM）** 编码。Windows 脚本版会按 UTF-8 读取配置（`chcp 65001`），尤其是 `SERVICE` 填了中文服务名时，用 GBK/ANSI 保存会导致服务名乱码。
+- Windows 脚本版对配置值中的英文感叹号 `!` 解析可能异常（批处理的已知限制），这类密码建议直接使用 Go 二进制版。
 
 ---
 
-##  构建方式
+##  Go 版构建方式
 
 ### 直接构建
 
@@ -78,7 +128,7 @@ display_name = "AutoLogin Service"
 go build -o autologin ./cmd
 ```
 
-### 使用脚本
+### Go 版构建脚本
 
 - Windows：`build.bat`
 - Linux / macOS：`build.sh`
@@ -87,13 +137,36 @@ go build -o autologin ./cmd
 
 ##  使用方法
 
-### 普通运行
+### Linux 脚本版
+
+运行环境需要 `bash`、`curl`、`sed`、`ping`。
+
+```bash
+chmod +x autologin.sh
+./autologin.sh
+./autologin.sh -once
+./autologin.sh -c /path/to/autologin.conf
+```
+
+### Windows 批处理版
+
+Windows 使用系统自带或手动安装的 `curl.exe`。
+
+```bat
+autologin.cmd
+autologin.cmd -c C:\path\to\autologin.conf
+autologin.cmd -once
+```
+
+默认情况下脚本会读取当前文件夹下的 `autologin.conf`；如果配置放在其他位置，再使用 `-c/--config` 指定路径。
+
+### Go 二进制版
 
 ```bash
 ./autologin
 ```
 
-### 指定配置文件
+### Go 版指定配置文件
 
 ```bash
 ./autologin -config config.toml
@@ -104,15 +177,72 @@ go build -o autologin ./cmd
 
 ---
 
-##  服务模式（后台运行）
+##  Linux 脚本版开机自启
 
-### 安装为系统服务
+脚本版推荐用 systemd 开机自启。先复制配置文件：
+
+```bash
+cp config.script.example autologin.conf
+```
+
+编辑 `autologin.conf` 后，运行安装脚本：
+
+```bash
+sudo ./install-service.sh
+```
+
+安装脚本会执行：
+
+- 复制 `autologin.sh` 到 `/usr/local/bin/autologin.sh`
+- 复制当前 `autologin.conf` 到 `/etc/autologin.conf`
+- 写入 `/etc/systemd/system/autologin.service`
+- 执行 `systemctl daemon-reload`
+- 执行 `systemctl enable --now autologin.service`
+
+也可以指定配置文件：
+
+```bash
+sudo ./install-service.sh -c /path/to/autologin.conf
+```
+
+查看服务和日志：
+
+```bash
+systemctl status autologin.service
+journalctl -u autologin.service -f
+```
+
+##  Windows 脚本版开机自启
+
+Windows 脚本版可以复制到当前用户的启动目录。先复制配置文件：
+
+```bat
+copy config.script.example autologin.conf
+```
+
+编辑 `autologin.conf` 后，双击运行：
+
+```bat
+install-startup.cmd
+```
+
+安装脚本会执行：
+
+- 查找当前 Windows 用户启动目录
+- 复制当前目录下的 `autologin.cmd`
+- 复制当前目录下的 `autologin.conf`
+
+运行前请把 `autologin.cmd`、`autologin.conf` 和 `install-startup.cmd` 放在同一目录。
+
+### Go 版服务模式
+
+### Go 版安装为系统服务
 
 ```bash
 ./autologin -install
 ```
 
-### 卸载服务
+### Go 版卸载服务
 
 ```bash
 ./autologin -uninstall
