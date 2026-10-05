@@ -1,5 +1,6 @@
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 .idea/
 .vscode/
@@ -12,6 +13,9 @@ autologin.conf
 *.conf
 !config.script.example
 
+config.toml
+config/
+
 autologin
 AutoLogin_win_*
 AutoLogin_linux_*
@@ -20,3 +24,5 @@ tmp/
 .tmp/
 *.tmp
 cookies*.txt
+
+StartupPath.txt
