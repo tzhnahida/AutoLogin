@@ -101,14 +101,22 @@ PASSWORD="你的密码"
 - `BASE_URL=http://210.27.177.172`
 - `LOGIN_URL=http://210.27.177.172/eportal/InterFace.do?method=login`
 - `TEST_URL=https://www.baidu.com`
+- `TRIGGER_URL=http://www.baidu.com`
 - `POLL_INTERVAL=3600`
 - `RETRY_INTERVAL=60`
 
+脚本的所有 HTTP 请求都强制直连（`curl --noproxy '*'`），不会走本机代理。如果配置的 `BASE_URL` 连不上或没有返回认证跳转页（例如换了网络环境、Portal 地址变了），脚本会访问 `TRIGGER_URL`（必须是一个 HTTP 地址，这样才会被 Portal 劫持跳转），从跳转目标自动探测当前网络真正的 Portal 地址并完成登录。
+
 如果 `SERVICE` 留空或不填写，脚本会依次尝试：`校园联通`、`校园电信`、`校园移动`、`校园无线`。如果填写了 `SERVICE`，脚本只尝试该值。
 
-连通性检测默认要求 `ping PING_TARGET` 和访问 `TEST_URL` 都成功，才认为网络可用；否则脚本会尝试登录。这样可以避免校园网未认证时因为能访问部分站点而误判为已联网。
+脚本每个周期**先直接尝试认证，再检测连通性**——这样在 Portal 只在未认证窗口期内可达的网络上，登录尝试不会被连通性检查耽误；已在线时重复的认证请求会被 Portal 拒绝，无副作用。连通性检测要求 `ping PING_TARGET` 和访问 `TEST_URL` 都成功；认证后网络仍不通，则每 `RETRY_INTERVAL` 秒重试，通了则休眠 `POLL_INTERVAL`。
 
 `POLL_INTERVAL` 和 `RETRY_INTERVAL` 单位为秒。配置文件包含账号密码，请妥善保管，不要提交到公开仓库。
+
+脚本版的登录流程与 Go 二进制版保持一致（相同的编码方式、相同的连通性判定与重试节奏）。两点注意：
+
+- `autologin.conf` 请保存为 **UTF-8（无 BOM）** 编码。Windows 脚本版会按 UTF-8 读取配置（`chcp 65001`），尤其是 `SERVICE` 填了中文服务名时，用 GBK/ANSI 保存会导致服务名乱码。
+- Windows 脚本版对配置值中的英文感叹号 `!` 解析可能异常（批处理的已知限制），这类密码建议直接使用 Go 二进制版。
 
 ---
 
@@ -131,7 +139,7 @@ go build -o autologin ./cmd
 
 ### Linux 脚本版
 
-运行环境需要 `bash`、`curl`、`sed`、`grep`。
+运行环境需要 `bash`、`curl`、`sed`、`ping`。
 
 ```bash
 chmod +x autologin.sh
