@@ -2,7 +2,6 @@ package autologin
 
 import (
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -26,9 +25,10 @@ type AuthConfig struct {
 }
 
 type APIConfig struct {
-	BaseURL  string `toml:"base_url"`
-	LoginURL string `toml:"login_url"`
-	TestURL  string `toml:"test_url"`
+	BaseURL    string `toml:"base_url"`
+	LoginURL   string `toml:"login_url"`
+	TestURL    string `toml:"test_url"`
+	TriggerURL string `toml:"trigger_url"`
 }
 type TimeConfig struct {
 	PollInterval  time.Duration `toml:"poll_interval"`
@@ -49,9 +49,10 @@ func defaultConfig() Config {
 			Service:  "Service",
 		},
 		API: APIConfig{
-			BaseURL:  "http://210.27.177.172",
-			LoginURL: "http://210.27.177.172/eportal/InterFace.do?method=login",
-			TestURL:  "https://www.baidu.com",
+			BaseURL:    "http://210.27.177.172",
+			LoginURL:   "http://210.27.177.172/eportal/InterFace.do?method=login",
+			TestURL:    "https://www.baidu.com",
+			TriggerURL: "http://www.baidu.com",
 		},
 		Time: TimeConfig{
 			PollInterval:  time.Hour,
@@ -65,12 +66,21 @@ func defaultConfig() Config {
 	}
 }
 
+// LoadConfig decodes path on top of the built-in defaults: fields missing
+// from the file keep their default instead of collapsing to zero values (a
+// zero PollInterval would panic time.NewTicker).
 func LoadConfig(path string) (Config, error) {
-	var cfg Config
-	_, err := toml.DecodeFile(path, &cfg)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
+	cfg := defaultConfig()
+	if _, err := toml.DecodeFile(path, &cfg); err != nil {
+		return Config{}, err
+	}
+	if cfg.Time.PollInterval <= 0 {
+		slog.Warn("poll_interval is not positive, falling back to 1h.")
+		cfg.Time.PollInterval = time.Hour
+	}
+	if cfg.Time.RetryInterval <= 0 {
+		slog.Warn("retry_interval is not positive, falling back to 1m.")
+		cfg.Time.RetryInterval = time.Minute
 	}
 	return cfg, nil
 }

@@ -26,6 +26,13 @@ func init() {
 }
 
 func main() {
+	// Resolve the config path against the caller's working directory before
+	// changing it, so test runs and the installed service point at the same
+	// file.
+	if abs, err := filepath.Abs(autologin.CfgPath); err == nil {
+		autologin.CfgPath = abs
+	}
+
 	// change current path for service and prevent get invalid path when test
 	if !test {
 		path, err := os.Executable()
@@ -42,30 +49,38 @@ func main() {
 	cfg, err := autologin.LoadConfig(autologin.CfgPath)
 	if err != nil {
 		slog.Error(err.Error())
+		os.Exit(1)
 	}
 	svcConfig := &service.Config{
 		Name:        cfg.Service.Name,
 		DisplayName: cfg.Service.DisplayName,
 		Description: cfg.Service.Description,
+		// The installed service must start with the same -config the user
+		// installed with; without this the flag is silently lost and the
+		// service falls back to config.toml next to the binary.
+		Arguments: []string{"-config", autologin.CfgPath},
 	}
 	prg := autologin.NewProgram(&cfg)
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
 		slog.Error(err.Error())
+		os.Exit(1)
 	}
 	switch {
 	case install:
 		err = s.Install()
-		slog.Info("Service registration in progress.")
 		if err != nil {
 			slog.Error(err.Error())
+			os.Exit(1)
 		}
+		slog.Info("Service registration in progress.")
 	case uninstall:
 		err = s.Uninstall()
-		slog.Info("Service uninstall in progress.")
 		if err != nil {
 			slog.Error(err.Error())
+			os.Exit(1)
 		}
+		slog.Info("Service uninstall in progress.")
 	default:
 		autologin.Logger, err = s.Logger(nil)
 		if err != nil {
@@ -78,6 +93,5 @@ func main() {
 				slog.Error(err.Error())
 			}
 		}
-
 	}
 }

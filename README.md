@@ -38,6 +38,7 @@
 ├─ autologin.sh      # Linux 脚本版
 ├─ autologin.cmd     # Windows 批处理版
 ├─ config.script.example # 脚本版配置示例
+├─ openwrt           # OpenWrt / busybox 路由器版（ash 移植 + procd 服务）
 ├─ build.sh          # Go 版 Linux / macOS 构建脚本
 ├─ build.bat         # Go 版 Windows 构建脚本
 └─ README.md
@@ -58,9 +59,10 @@ password = "你的密码"
 service = "校园联通/电信/移动"  # 或 "校园无线"
 
 [api]
-base_url  = "http://210.27.177.172"
-login_url = "http://210.27.177.172/eportal/InterFace.do?method=login"
-test_url  = "https://www.baidu.com"
+base_url   = "http://210.27.177.172"
+login_url  = "http://210.27.177.172/eportal/InterFace.do?method=login"
+test_url   = "https://www.baidu.com"
+trigger_url = "http://www.baidu.com"  # 配置的 Portal 失效时，用它被劫持的跳转自动探测真实 Portal
 
 [time]
 poll_interval  = "1h0m0s"  # 网络状态检测间隔
@@ -212,6 +214,23 @@ systemctl status autologin.service
 journalctl -u autologin.service -f
 ```
 
+##  OpenWrt / busybox 路由器版
+
+OpenWrt 等路由器固件没有 bash、没有 systemd（只有 busybox ash + procd），根目录的 bash 脚本无法直接运行。[`openwrt/`](openwrt/) 目录提供移植版：
+
+- `openwrt/autologin.sh`：busybox ash 兼容版（POSIX sh 重写，登录逻辑与 bash 版一致）
+- `openwrt/autologin.initd`：procd 服务（开机自启 + 崩溃自动拉起）
+- `openwrt/install.sh`：路由器上的一键安装
+- [`openwrt/README.md`](openwrt/README.md)：**移植方法**（bash → ash 方言差异逐项清单、urlencode 逐字节循环、procd 配置）、部署与验证步骤、老 dropbear / scp / 密钥兼容等踩坑记录
+
+快速部署：
+
+```sh
+scp -O -r openwrt/ root@<路由器IP>:/tmp/
+ssh -o HostKeyAlgorithms=+ssh-rsa root@<路由器IP>
+sh /tmp/openwrt/install.sh
+```
+
 ##  Windows 脚本版开机自启
 
 Windows 脚本版可以复制到当前用户的启动目录。先复制配置文件：
@@ -242,7 +261,7 @@ install-startup.cmd
 ./autologin -install
 ```
 
-### Go 版卸载服务
+`-install` 会把 `-config` 的路径写进服务启动参数（自动转为绝对路径），卸载：
 
 ```bash
 ./autologin -uninstall
